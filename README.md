@@ -54,4 +54,22 @@ Built with a modular Node.js architecture, this backend supports real-time WebSo
 * **Authentication:** `express-session`, `connect-mongo`, `bcryptjs`
 * **Media Storage:** Cloudinary & Multer
 * **Email Service:** Nodemailer
-* **AI Integration:** Groq API / LLaMA 3
+* **AI Integration:** Groq API / LLaMA 
+
+
+
+
+* **.env** 
+GROQ_API_KEY=
+
+MONGO_URI=
+
+CLOUDINARY_CLOUD_NAME= 
+CLOUDINARY_API_KEY= 
+CLOUDINARY_API_SECRET= 
+
+
+EMAIL_USER= 
+EMAIL_PASS= 
+
+
