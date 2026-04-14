@@ -12,23 +12,31 @@ const messageRoutes = require('./routes/messageRoutes');
 const app = express();
 
 
-// 🔥 IMPORTANT: REQUIRED for devtunnel / proxy
+// 🔥 REQUIRED for devtunnel / proxies (HTTPS + cookies)
 app.set("trust proxy", 1);
 
 
-// ✅ Proper CORS for cookies
+// ✅ CORS (supports credentials + dynamic origin)
 app.use(cors({
-  origin: true,
+  origin: function(origin, callback) {
+    callback(null, origin); // reflect request origin
+  },
   credentials: true
 }));
 
 
-// ✅ Body parser
+// ✅ Middleware
 app.use(express.json());
 
 
-// ✅ Session (must come after trust proxy)
+// ✅ Session (must come AFTER trust proxy)
 app.use(sessionConfig);
+
+
+// ✅ Test route (for debugging tunnel)
+app.get("/", (req, res) => {
+  res.send("🚀 Server is working!");
+});
 
 
 // ✅ Routes
@@ -38,13 +46,21 @@ app.use('/api/chats', chatRoutes);
 app.use('/api/messages', messageRoutes);
 
 
+// ✅ Port
 const PORT = process.env.PORT || 5000;
 
-connectDB().then(() => {
-  const server = app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
 
-  const io = initSocket(server);
-  app.set('io', io);
-});
+// ✅ Start server AFTER DB connection
+connectDB()
+  .then(() => {
+    const server = app.listen(PORT, "0.0.0.0", () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+
+    // ✅ Initialize Socket.io
+    const io = initSocket(server);
+    app.set('io', io);
+  })
+  .catch((err) => {
+    console.error("❌ DB connection failed:", err);
+  });
