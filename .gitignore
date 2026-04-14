@@ -1,0 +1,77 @@
+# ===============================
+# 🔒 ENV FILES (ALL LOCATIONS)
+# ===============================
+.env
+.env.*
+!.env.example
+
+# Backend env
+Backend/.env
+Backend/src/.env
+
+# Frontend env
+Frontend/.env
+Frontend/NexusCp/.env
+
+# ===============================
+# 📦 NODE MODULES
+# ===============================
+node_modules/
+Backend/node_modules/
+Frontend/node_modules/
+Frontend/NexusCp/node_modules/
+
+# ===============================
+# 🏗 BUILD FILES
+# ===============================
+dist/
+build/
+Backend/dist/
+Frontend/dist/
+Frontend/NexusCp/dist/
+
+# ===============================
+# ⚙️ VITE / REACT
+# ===============================
+.vite/
+
+# ===============================
+# 🗂 LOG FILES
+# ===============================
+logs/
+*.log
+
+# ===============================
+# 💻 OS FILES
+# ===============================
+.DS_Store
+Thumbs.db
+
+# ===============================
+# 🧠 IDE FILES
+# ===============================
+.vscode/
+.idea/
+
+# ===============================
+# 🔐 CACHE / SESSION
+# ===============================
+.cache/
+sessions/
+
+# ===============================
+# 📸 UPLOADS
+# ===============================
+uploads/
+public/uploads/
+
+# ===============================
+# 🧪 TEST
+# ===============================
+coverage/
+
+# ===============================
+# 🔑 KEYS
+# ===============================
+*.pem
+*.key
