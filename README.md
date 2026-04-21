@@ -1,6 +1,6 @@
-# NexChat
+# PulseChat
 
-NexChat is a full-stack real-time chat application built to deliver a modern messaging experience similar to WhatsApp Web or Telegram Web. It combines private messaging, group conversations, AI-assisted chat, voice and video calling, temporary messages, and installable PWA behavior in a single web application.
+PulseChat is a full-stack real-time chat application built to deliver a modern messaging experience similar to WhatsApp Web or Telegram Web. It combines private messaging, group conversations, AI-assisted chat, voice and video calling, temporary messages, and installable PWA behavior in a single web application.
 
 The project is structured as a frontend and backend monorepo, with a React + Vite client and an Express + MongoDB + Socket.io server. The app is designed around real-time communication, session-based authentication, and a responsive interface that works across desktop and mobile browsers.
 
