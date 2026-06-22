@@ -4,6 +4,26 @@ const emailService = require('../services/emailService');
 
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
+const saveSession = (req) => new Promise((resolve, reject) => {
+  req.session.save((error) => {
+    if (error) reject(error);
+    else resolve();
+  });
+});
+
+const getSessionCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const secure = process.env.COOKIE_SECURE
+    ? process.env.COOKIE_SECURE === 'true'
+    : isProduction;
+
+  return {
+    httpOnly: true,
+    secure,
+    sameSite: process.env.COOKIE_SAMESITE || (secure ? 'none' : 'lax'),
+  };
+};
+
 const formatUser = (user) => ({
   id: user._id,
   name: user.name,
@@ -91,6 +111,7 @@ exports.verifyEmail = async (req, res) => {
     await Otp.deleteMany({ email });
 
     req.session.userId = user._id;
+    await saveSession(req);
 
     res.status(200).json({ message: 'Email verified successfully', user: formatUser(user) });
   } catch (error) {
@@ -116,6 +137,7 @@ exports.login = async (req, res) => {
     }
 
     req.session.userId = user._id;
+    await saveSession(req);
     res.status(200).json({ message: 'Logged in successfully', user: formatUser(user) });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -161,12 +183,14 @@ exports.resetPassword = async (req, res) => {
 };
 
 exports.logout = (req, res) => {
+  const cookieOptions = getSessionCookieOptions();
+
   req.session.destroy((err) => {
     if (err) {
       return res.status(500).json({ message: 'Logout failed' });
     }
 
-    res.clearCookie('connect.sid');
+    res.clearCookie('connect.sid', cookieOptions);
     res.status(200).json({ message: 'Logged out' });
   });
 };
