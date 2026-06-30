@@ -49,6 +49,7 @@ const ChatApp = () => {
   const chatsRef = useRef([]);
   const usersRef = useRef([]);
   const currentUserRef = useRef(null);
+  const authStatusRef = useRef('checking');
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteStreamRef = useRef(null);
@@ -56,6 +57,7 @@ const ChatApp = () => {
   const lastDirectChatIdRef = useRef(null);
 
   const [authLoading, setAuthLoading] = useState(true);
+  const [authStatus, setAuthStatus] = useState('checking');
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [authError, setAuthError] = useState('');
   const [authView, setAuthView] = useState({ mode: 'login', email: '' });
@@ -84,6 +86,7 @@ const ChatApp = () => {
   chatsRef.current = chats;
   usersRef.current = users;
   currentUserRef.current = currentUser;
+  authStatusRef.current = authStatus;
 
   useEffect(() => {
     if (otpCooldown <= 0) return undefined;
@@ -113,15 +116,28 @@ const ChatApp = () => {
     setCallState(emptyCallState);
   };
 
-  const handleUnauthorized = () => {
+  const resetAuthenticatedState = () => {
     socketRef.current?.disconnect();
     cleanupCallResources();
     setCurrentUser(null);
     setChats([]);
+    setUsers([]);
+    setBlockedUsers([]);
     setMessagesByChat({});
     setSelectedChatId(null);
+    setUnreadCounts({});
+    setIncomingCall(null);
+    setSocketConnected(false);
+  };
+
+  const handleUnauthorized = () => {
+    const hadAuthenticatedSession = authStatusRef.current === 'authenticated';
+    resetAuthenticatedState();
+    setAuthStatus('anonymous');
     setAuthStage('login');
-    toast.error('Your session expired. Please sign in again.');
+    if (hadAuthenticatedSession) {
+      toast.error('Your session expired. Please sign in again.');
+    }
   };
 
   const safeRequest = async (request, fallbackMessage) => {
@@ -130,6 +146,7 @@ const ChatApp = () => {
     } catch (error) {
       if (error?.response?.status === 401) {
         handleUnauthorized();
+        error.authHandled = true;
         throw error;
       }
       throw new Error(getErrorMessage(error, fallbackMessage));
@@ -377,9 +394,14 @@ const ChatApp = () => {
         const response = await api.get('/auth/me');
         setCurrentUser(response.data.user);
         setPrivacy(response.data.user.privacy || defaultPrivacy);
+        setAuthStatus('authenticated');
       } catch (error) {
-        if (error?.response?.status !== 401) {
+        if (error?.response?.status === 401) {
+          resetAuthenticatedState();
+          setAuthStatus('anonymous');
+        } else {
           setAuthError(getErrorMessage(error, 'Failed to restore your session.'));
+          setAuthStatus('anonymous');
         }
       } finally {
         setAuthLoading(false);
@@ -390,10 +412,11 @@ const ChatApp = () => {
   }, []);
 
   useEffect(() => {
-    if (!currentUser) return undefined;
+    if (authStatus !== 'authenticated' || !currentUser) return undefined;
 
     const socket = connectSocket();
     socketRef.current = socket;
+    let isActive = true;
 
     const joinKnownChats = (chatList = chatsRef.current) => {
       chatList.forEach((chat) => {
@@ -412,6 +435,7 @@ const ChatApp = () => {
         ]);
 
         const nextChats = chatsResponse.data.chats || [];
+        if (!isActive || authStatusRef.current !== 'authenticated') return;
         setChats(nextChats);
         setUsers(usersResponse.data.map((user) => ({
           id: user._id,
@@ -422,7 +446,9 @@ const ChatApp = () => {
         setBlockedUsers(blockedResponse.data.blockedUsers || []);
         joinKnownChats(nextChats);
       } catch (error) {
-        toast.error(error.message);
+        if (!error.authHandled) {
+          toast.error(error.message);
+        }
       }
     };
 
@@ -588,16 +614,17 @@ const ChatApp = () => {
     });
 
     return () => {
+      isActive = false;
       socket.removeAllListeners();
       disconnectSocket();
       socketRef.current = null;
       setSocketConnected(false);
       cleanupCallResources();
     };
-  }, [currentUser]);
+  }, [authStatus, currentUser]);
 
   useEffect(() => {
-    if (!currentUser || !selectedChatId) return;
+    if (authStatus !== 'authenticated' || !currentUser || !selectedChatId) return;
 
     const joinChat = async () => {
       try {
@@ -613,7 +640,7 @@ const ChatApp = () => {
     };
 
     joinChat();
-  }, [currentUser, selectedChatId]);
+  }, [authStatus, currentUser, selectedChatId]);
 
   useEffect(() => {
     if (!socketConnected || !socketRef.current) return;
@@ -720,6 +747,7 @@ const ChatApp = () => {
       if (response?.data?.user) {
         setCurrentUser(response.data.user);
         setPrivacy(response.data.user.privacy || defaultPrivacy);
+        setAuthStatus('authenticated');
       } else if (response?.data?.nextStep === 'verify-email') {
         setAuthStage('verify', response.data.email || form.email);
         toast.success(response.data.message);
@@ -764,12 +792,8 @@ const ChatApp = () => {
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to logout cleanly.'));
     } finally {
-      socketRef.current?.disconnect();
-      cleanupCallResources();
-      setCurrentUser(null);
-      setChats([]);
-      setMessagesByChat({});
-      setSelectedChatId(null);
+      resetAuthenticatedState();
+      setAuthStatus('anonymous');
       setAuthStage('login');
     }
   };
